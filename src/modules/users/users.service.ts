@@ -4,28 +4,55 @@ import { CreateUserDTO } from './dtos/create-user.dto';
 import * as bcrypt from 'bcrypt';
 import { UpdateUserDTO } from './dtos/update-user.dto';
 import { AlreadyExistsException } from 'src/common/exceptions/AlreadyExists.exception';
+import { UserType } from './types/user.type';
+import { find } from 'rxjs';
 
 @Injectable()
 export class UsersService {
     constructor(private readonly prisma: PrismaService) {}
 
-    async createUser(dto: CreateUserDTO){
-        const existingUser = await this.prisma.user.findUnique({
-            where: { email: dto.email },
-        });
+    private async findRole(roleName: UserType) {
+       const role = this.prisma.role.findUnique({ where: { roleName } });
+       if (!role) throw new NotFoundException(`Role ${roleName} not found`);
+       return role;
+    }
 
-        if (existingUser) {
-            throw new AlreadyExistsException('A user with this email already exists');
-        }
+    private async checkExistingUser(email: string) {
+        const existingUser = await this.prisma.user.findUnique({
+            where: { email },
+        });
+        if (existingUser) throw new AlreadyExistsException('A user with this email already exists');
+    }
+
+    async createUser(dto: CreateUserDTO){
+        await this.checkExistingUser(dto.email);
+
         const hashedPassword = await bcrypt.hash(dto.password, 10);
         const user = await this.prisma.user.create({
             data: {
-                name: dto.name,
-                email: dto.email,
+                ...dto,
                 password: hashedPassword,
             },
         });
         return user;
+    }
+
+    async createAdminUser(dto: CreateUserDTO) {
+        await this.checkExistingUser(dto.email);
+        
+        const {email, firstName, lastName, phoneNumber} = dto;
+        const adminRole = await this.findRole(UserType.ADMIN);
+
+        if(!adminRole) throw new NotFoundException('Admin role not found');
+
+        const hashedPassword = await bcrypt.hash(dto.password, 10);
+        return this.prisma.user.create({
+            data: {
+                email, firstName, lastName, phoneNumber, password: hashedPassword,
+                roles: {connect: {id: adminRole.id}}
+                
+            },
+        });
     }
 
     async getAllUsers() {
@@ -50,7 +77,7 @@ export class UsersService {
             if (error.code === 'P2025') {
                 throw new NotFoundException('User not found');
             }
-        throw error;
+            throw error;
         }
     }
 

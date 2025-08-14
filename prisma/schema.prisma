@@ -9,10 +9,58 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String           @id @default(uuid())
+  firstName    String
+  lastName     String
+  email        String           @unique
+  password     String
+  phoneNumber  String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  roles        Role[]           @relation("UserRoles")
+  createdRoles Role[]           @relation("role_created_by")
+  updatedRoles Role[]           @relation("role_updated_by")
+  Claim        Claim[]
+  Item         Item[]
+}
+
+model Role {
+  id              String      @id @default(uuid())
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  roleName        String      @unique
+  description     String?
+  createdByUserId String?
+  createdBy       User?       @relation(fields: [createdByUserId], references: [id], name: "role_created_by")
+  updatedByUserId String?
+  updatedBy       User?       @relation(fields: [updatedByUserId], references: [id], name: "role_updated_by")
+  user            User[]      @relation("UserRoles")
+}
+
+model Item {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  category      String?
+  color         String
+  status        String   @default("lost")
+  location      String?
+  dateLost      DateTime?
+  dateFound     DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  submittedById String
+  submittedBy   User     @relation(fields: [submittedById], references: [id])
+  claims        Claim[]
+}
+
+model Claim {
+  id          String   @id @default(uuid())
+  itemId      String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  claimantId  String
+  item        Item     @relation(fields: [itemId], references: [id])
+  claimant    User     @relation(fields: [claimantId], references: [id])
 }

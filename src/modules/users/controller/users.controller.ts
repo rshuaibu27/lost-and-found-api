@@ -13,8 +13,16 @@ export class UsersController {
     @ApiOperation({ summary: 'Create a new app user' })
     @ApiResponse({ status: 201, description: 'User created successfully' })
     @ApiResponse({ status: 400, description: 'Invalid input data' })
-    async create(@Body() dto: CreateUserDTO,  @Req() req: Request) {
+    async createUser(@Body() dto: CreateUserDTO,  @Req() req: Request) {
         return this.usersService.createUser(dto);
+    }
+
+    @Post('admin')
+    @ApiOperation({ summary: 'Create a new admin account' })
+    @ApiResponse({ status: 201, description: 'Admin created successfully' })
+    @ApiResponse({ status: 400, description: 'Invalid input data' })
+    async createAdmin(@Body() dto: CreateUserDTO,  @Req() req: Request) {
+        return this.usersService.createAdminUser(dto);
     }
 
     @Get()
